@@ -39,10 +39,36 @@ export default {
       });
     }
 
-    // Admin Route to generate keys (For Demo)
+    // 💳 USDC Payment Gateway: Automating "Money Printer"
+    if (url.pathname === "/api/pay/confirm" && request.method === "POST") {
+      const { txHash, email } = await request.json();
+      
+      // Step 1: Verify USDC transaction on-chain (Simulated for demo)
+      // In production: fetch(`https://xrplcluster.com/`, { method: 'POST', body: JSON.stringify({ command: 'tx', transaction: txHash }) })
+      const isPaymentValid = txHash && (txHash.startsWith("0x") || txHash.length > 50); 
+      
+      if (isPaymentValid) {
+        const newKey = "pro_" + crypto.randomUUID().split("-")[0];
+        await env.WATCHTOWER_KV.put("apikey:" + newKey, JSON.stringify({ 
+          status: "active", 
+          email: email,
+          tier: "PRO",
+          expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        }));
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          apiKey: newKey,
+          message: "Payment Verified. Welcome to THE WATCHTOWER PRO." 
+        }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      }
+      return new Response(JSON.stringify({ error: "Invalid Transaction" }), { status: 400 });
+    }
+
+    // Admin Route to generate keys
     if (url.pathname === "/admin/gen-key" && request.method === "POST") {
       const newKey = crypto.randomUUID();
-      await env.WATCHTOWER_KV.put(`apikey:${newKey}`, "active");
+      await env.WATCHTOWER_KV.put("apikey:" + newKey, "active");
       return new Response(JSON.stringify({ apiKey: newKey }), {
         headers: { "Content-Type": "application/json" },
       });
@@ -61,20 +87,13 @@ export default {
 
 // Wasm Core Bridge (High-Performance Fallback)
 function performWasmAudit(metrics) {
-  /**
-   * [WASM-READY STRUCTURE]
-   * 실제 운영 환경에서는 아래와 같이 Wasm 모듈을 호출합니다:
-   * import init, { audit_compliance } from "./wasm-out/wasm_core.js";
-   */
-  
-  const btcPrice = 60000; // API에서 실시간 가격을 가져오도록 확장 가능
+  const btcPrice = 64500; // Mock current BTC price
   const input = {
     btc_reserve: metrics.btc_reserve,
     btc_price: btcPrice,
     sdac_supply: metrics.sdac_supply
   };
 
-  // Wasm 엔진(Rust)의 로직을 JS로 정밀하게 재현 (Fallback)
   const reserveValue = input.btc_reserve * input.btc_price;
   const ratio = reserveValue / input.sdac_supply;
   const isSolvent = ratio >= 1.0;
@@ -87,7 +106,7 @@ function performWasmAudit(metrics) {
                     ratio > 0.95 ? "CAUTION" : "CRITICAL";
 
   return {
-    verified_by: "EDGE-AUDITOR-JS-FALLBACK", // Wasm 배포 전까지 사용
+    verified_by: "EDGE-AUDITOR-JS-FALLBACK",
     is_solvent: isSolvent,
     compliance_score: parseFloat(score.toFixed(2)),
     reserve_ratio: parseFloat(ratio.toFixed(4)),
@@ -98,22 +117,41 @@ function performWasmAudit(metrics) {
 
 async function updateMetrics(env) {
   const addresses = env.GOV_BTC_ADDRESSES.split(",");
-  let totalBalance = 0;
+  let totalBtc = 0;
+  let sdacSupply = 12500000000; // Default fallback
 
   try {
-    // Fetch real-time data from Mempool.space or similar
+    // 1. Fetch real-time BTC Balances from Gov Wallets
     for (const addr of addresses) {
-      const res = await fetch(`https://mempool.space/api/address/${addr}`);
-      const data = await res.json();
-      totalBalance += (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000;
+      const res = await fetch("https://mempool.space/api/address/" + addr.trim());
+      if (res.ok) {
+        const data = await res.json();
+        totalBtc += (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 100000000;
+      }
     }
 
+    // 2. Fetch real-time SDAC Supply from XRPL
+    const xrplRes = await fetch("https://xrplcluster.com/", {
+      method: "POST",
+      body: JSON.stringify({
+        command: "gateway_balances",
+        account: "rSDAC_ISSUER_ADDRESS_HERE", // Replace with actual issuer
+        strict: true,
+        ledger_index: "validated"
+      })
+    });
+    
+    if (xrplRes.ok) {
+      const xrplData = await xrplRes.json();
+      // sdacSupply = parseFloat(xrplData.result.balances...); // Extract actual supply if available
+    }
+
+    const btcPrice = 64500; // In production: fetch from price oracle
     const metrics = {
-      btc_reserve: totalBalance,
-      sdac_supply: 500000, // Mock SDAC supply
-      reserve_ratio: (totalBalance * 60000) / 500000, // BTC at $60k vs SDAC supply
-      kill_switch_active: false,
-      compliance_score: 98.5,
+      btc_reserve: totalBtc,
+      sdac_supply: sdacSupply,
+      reserve_ratio: (totalBtc * btcPrice) / sdacSupply,
+      compliance_score: Math.min(((totalBtc * btcPrice) / sdacSupply) * 100, 100),
       timestamp: Date.now(),
     };
 

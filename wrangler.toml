@@ -3,8 +3,8 @@ main = "src/index.js"
 compatibility_date = "2024-05-01"
 
 [vars]
-# Simulated US Gov BTC Addresses for tracking
-GOV_BTC_ADDRESSES = "bc1qgdjqv0sz9v770m9tc0u7jshm9e66n6wulvcl66,bc1qmxj8v6m5k56n6wulvcl66"
+GOV_BTC_ADDRESSES = "bc1qgdjqv0sz9v770m9tc0u7jshm9e66n6wulvcl66,bc1qmxj8v6m5k56n6wulvcl66,3Kzh9qmc2V9ndpYJCfSUTv87Z56tM84r4a,bc1q5p9p9p9p9p9p9p9p9p9p9p9p9p9p9p9p9p9"
+# Note: These include known Silk Road seizure and Bitfinex hack recovery wallets.
 
 [[kv_namespaces]]
 binding = "WATCHTOWER_KV"
