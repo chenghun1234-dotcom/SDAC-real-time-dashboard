@@ -224,17 +224,38 @@ function getHTML() {
             -webkit-text-fill-color: transparent;
         }
 
+        .pro-tier {
+            --accent: #ffd700; /* Gold */
+            --accent-glow: rgba(255, 215, 0, 0.4);
+            background: linear-gradient(135deg, #0a0a05 0%, #030508 100%);
+        }
+
+        .gold-badge {
+            background: linear-gradient(90deg, #ffd700, #ffae00);
+            color: #000 !important;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            font-weight: 800;
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+            100% { filter: brightness(1); }
+        }
+
         .sys-status {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1.2rem;
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--border);
             border-radius: 30px;
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--accent);
+            transition: all 0.5s ease;
         }
 
         .pulse {
@@ -564,14 +585,29 @@ function getHTML() {
                 const offset = 251.2 * (1 - score / 100);
                 fill.style.strokeDashoffset = offset;
 
+                // PRO UI Updates
+                const body = document.body;
+                const badge = document.querySelector('.sys-status');
+                
+                if (data.tier === "PRO") {
+                    body.classList.add('pro-tier');
+                    badge.classList.add('gold-badge');
+                    badge.innerHTML = '<div class="pulse" style="background: #000; box-shadow: none"></div> WASM VERIFIED PRO';
+                } else {
+                    body.classList.remove('pro-tier');
+                    badge.classList.remove('gold-badge');
+                    badge.innerHTML = '<div class="pulse"></div> EDGE-NODE: ACTIVE';
+                }
+
                 // Update Audit Status
                 if (data.audit) {
                     const statusVal = document.getElementById('kill-switch');
                     statusVal.innerText = data.audit.risk_level;
                     statusVal.style.color = data.audit.is_solvent ? 'var(--accent)' : 'var(--danger)';
                     
-                    const badge = document.querySelector('.sys-status');
-                    badge.innerHTML = `<div class="pulse"></div> VERIFIED BY: ${data.audit.verified_by}`;
+                    if (data.tier !== "PRO") {
+                        badge.innerHTML = '<div class="pulse"></div> VERIFIED BY: ' + data.audit.verified_by;
+                    }
                 }
 
                 // Add random audit log

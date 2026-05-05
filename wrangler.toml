@@ -8,7 +8,8 @@ GOV_BTC_ADDRESSES = "bc1qgdjqv0sz9v770m9tc0u7jshm9e66n6wulvcl66,bc1qmxj8v6m5k56n
 
 [[kv_namespaces]]
 binding = "WATCHTOWER_KV"
-id = "YOUR_KV_ID_HERE" # Replace with actual ID after creation
+id = "634ce5894e8a4f54a0688d8d3a839fbd"
+preview_id = "634ce5894e8a4f54a0688d8d3a839fbd"
 
 [triggers]
 crons = ["*/5 * * * *"] # Every 5 minutes
