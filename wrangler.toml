@@ -13,3 +13,8 @@ preview_id = "634ce5894e8a4f54a0688d8d3a839fbd"
 
 [triggers]
 crons = ["*/5 * * * *"] # Every 5 minutes
+
+[[d1_databases]]
+binding = "DB"
+database_name = "watchtower-db"
+database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"

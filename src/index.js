@@ -39,6 +39,16 @@ export default {
       });
     }
 
+    // 📈 Historical Data API: For institutional charts
+    if (url.pathname === "/api/history") {
+      const history = await env.DB.prepare(
+        "SELECT * FROM audit_history ORDER BY timestamp DESC LIMIT 30"
+      ).all();
+      return new Response(JSON.stringify(history.results), {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
     // 💳 USDC Payment Gateway: Automating "Money Printer"
     if (url.pathname === "/api/pay/confirm" && request.method === "POST") {
       const { txHash, email } = await request.json();
@@ -156,6 +166,13 @@ async function updateMetrics(env) {
     };
 
     await env.WATCHTOWER_KV.put("current_metrics", JSON.stringify(metrics));
+
+    // 3. Save snapshot to D1 for historical auditing
+    await env.DB.prepare(
+      "INSERT INTO audit_history (btc_reserve, sdac_supply, reserve_ratio, compliance_score) VALUES (?, ?, ?, ?)"
+    ).bind(metrics.btc_reserve, metrics.sdac_supply, metrics.reserve_ratio, metrics.compliance_score).run();
+
+    console.log("Metrics and History updated successfully:", metrics);
   } catch (err) {
     console.error("Failed to update metrics:", err);
   }
@@ -600,12 +617,62 @@ function getHTML() {
             </div>
         </div>
 
+        <div class="audit-panel" style="margin-top: 1.5rem; min-height: 300px;">
+            <div class="stat-label">HISTORICAL RESERVE RATIO (SNAPSHOTS)</div>
+            <canvas id="historyChart" style="width: 100%; height: 200px;"></canvas>
+        </div>
+
         <footer>
             THE WATCHTOWER | POWERED BY CLOUDFLARE WORKERS & WEBASSEMBLY | &copy; 2026 REGULATORY EDGE
         </footer>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let historyChart;
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                
+                const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString()).reverse();
+                const ratios = data.map(d => d.reserve_ratio).reverse();
+
+                if (historyChart) {
+                    historyChart.data.labels = labels;
+                    historyChart.data.datasets[0].data = ratios;
+                    historyChart.update();
+                } else {
+                    const ctx = document.getElementById('historyChart').getContext('2d');
+                    historyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Reserve Ratio',
+                                data: ratios,
+                                borderColor: '#00ffa3',
+                                backgroundColor: 'rgba(0, 255, 163, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: false, grid: { color: 'rgba(255,255,255,0.05)' } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("History fetch error:", err);
+            }
+        }
+
         async function fetchMetrics() {
             try {
                 const res = await fetch('/api/metrics');
@@ -650,6 +717,9 @@ function getHTML() {
 
                 // Add random audit log
                 addAuditLog(data);
+                
+                // Fetch historical chart data
+                fetchHistory();
             } catch (err) {
                 console.error("Dashboard sync error:", err);
             }
