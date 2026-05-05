@@ -17,4 +17,4 @@ crons = ["*/5 * * * *"] # Every 5 minutes
 [[d1_databases]]
 binding = "DB"
 database_name = "watchtower-db"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "79946b37-8cd0-4fb3-ad91-44fe81543d41"
