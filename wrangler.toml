@@ -1,4 +1,4 @@
-name = "the-watchtower"
+name = "sdacrealtimedashboard"
 main = "src/index.js"
 compatibility_date = "2024-05-01"
 
