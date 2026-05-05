@@ -621,14 +621,12 @@ function getHTML() {
             const feed = document.getElementById('audit-feed');
             const item = document.createElement('div');
             item.className = 'audit-item';
-            item.innerHTML = \`
-                <div class="audit-type">SEC</div>
-                <div class="audit-info">
-                    <h4>SYSTEM HEARTBEAT</h4>
-                    <p>Wasm Auditor verified reserves at \${new Date().toLocaleTimeString()}</p>
-                </div>
-                <div class="audit-status">PASS</div>
-            \`;
+            item.innerHTML = '<div class="audit-type">SEC</div>' +
+                '<div class="audit-info">' +
+                    '<h4>SYSTEM HEARTBEAT</h4>' +
+                    '<p>Wasm Auditor verified reserves at ' + new Date().toLocaleTimeString() + '</p>' +
+                '</div>' +
+                '<div class="audit-status">PASS</div>';
             feed.prepend(item);
             if (feed.children.length > 5) feed.lastChild.remove();
         }
@@ -640,4 +638,5 @@ function getHTML() {
 </html>
 `;
 }
+
 
