@@ -1,0 +1,6 @@
+node_modules
+.wrangler
+dist
+wasm-core/target
+src/wasm-out
+.dev.vars
